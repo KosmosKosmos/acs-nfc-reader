@@ -29,11 +29,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - ✅ Accessibility permission check (`AXIsProcessTrusted`).
 - ✅ `ReaderMonitor` fires the initial reader-present event on startup.
 - ✅ Refactored module structure imports and wires up cleanly.
+- ✅ Reader **hotplug** — unplugging and re-plugging the reader while the
+  service runs works: tags on the re-plugged reader are read without a restart.
+  This works because `CardMonitor` re-enumerates readers every cycle.
+
+### Known limitation
+- ⚠️ On macOS the `ReaderMonitor` does **not** emit arrival/removal events for
+  reader hotplug (no `[+]`/`[-]` log), so `_ReaderLog` is silent there. Apple's
+  PC/SC implementation does not deliver the PnP reader notification reliably.
+  This is cosmetic only — functional hotplug does not depend on it (see above).
+  A poll-and-diff logger over `readers()` would restore the feedback if wanted.
 
 ### Not yet verified
-- ⬜ macOS reader **hotplug** (unplug / re-plug while running) — only the
-  startup enumeration event has been observed so far; the unplug/re-plug path
-  has not been exercised live.
 - ⬜ Multiple simultaneous readers on one host.
 - ⬜ Linux backend (`inject_linux.py`) — no live run on a Linux host yet;
   uinput injection and udev/`pcscd` setup untested in practice.
@@ -44,8 +51,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## TODO
 
-- [ ] Confirm macOS reader hotplug (unplug → `[-]`, re-plug → `[+]`, tag → `[uid]`);
-      investigate PC/SC context invalidation on the zero-reader transition if it fails.
+- [ ] Optional: replace the macOS-silent `ReaderMonitor` logging with a
+      poll-and-diff logger over `readers()` for cross-platform hotplug feedback.
 - [ ] Test on a Linux host with the reader (uinput device creation, layout,
       `pcscd` dependency, non-root `/dev/uinput` via udev rule).
 - [ ] Test on Windows (Unicode SendInput, logon-task autostart).
