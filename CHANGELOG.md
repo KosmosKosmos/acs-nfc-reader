@@ -16,8 +16,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Unified entry point `wedge.py` with automatic backend selection.
 - Reader hotplug logging via a cross-platform poll-and-diff over `readers()`
   (replaces the `ReaderMonitor`, whose PnP events do not arrive on macOS).
-- Daemon configs: macOS LaunchAgent, Linux systemd unit + udev rule.
+- Daemon configs: macOS LaunchAgent, Linux systemd unit + udev rule,
+  `blacklist-nfc.conf` to release the reader from the kernel NFC stack.
 - English README with setup, service, and hotplug documentation.
+- Documented two Linux gotchas: `pn533_usb` kernel driver claiming the reader,
+  and pcsc-lite polkit denial for non-root SSH users.
 
 ## Verification status
 
@@ -40,10 +43,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   in the run loop; works on all platforms and names the specific reader that
   connected/disconnected. Startup enumeration + clean shutdown verified on macOS.
 
+### Tested — Linux (Debian 13 trixie, Python 3.13, pyscard 2.x + evdev)
+- ✅ System setup: pcscd + libccid, `pip install pyscard evdev` build from source.
+- ✅ PC/SC reader enumeration after blacklisting `pn533_usb` and restarting pcscd.
+- ✅ UID read end-to-end — `041C96CAB16F81`.
+- ✅ uinput injection backend — virtual keyboard device created, `inject()`
+  emits without error (keystroke target not verifiable on a headless host).
+- ✅ `wedge.py` full service start — Linux backend auto-selected, poll-diff
+  reader log, card monitor, clean shutdown.
+- ✅ Resolved gotchas live: `pn533_usb` kernel driver, pcsc-lite polkit denial,
+  `/dev/uinput` access via `input` group + udev rule.
+
 ### Not yet verified
+- ⬜ Linux keystrokes actually landing in a focused field (needs a GUI session;
+  only verified on a headless server so far).
 - ⬜ Multiple simultaneous readers on one host.
-- ⬜ Linux backend (`inject_linux.py`) — no live run on a Linux host yet;
-  uinput injection and udev/`pcscd` setup untested in practice.
 - ⬜ Windows backend (`inject_windows.py`) — no live run; `SendInput` and the
   session-0 caveat untested in practice.
 - ⬜ Daemon configs (LaunchAgent / systemd / logon task) not yet installed and

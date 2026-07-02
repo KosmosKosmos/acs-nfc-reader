@@ -46,6 +46,16 @@ pip install evdev
 python wedge.py
 ```
 
+On **Linux**, pyscard needs system packages first (Debian/Ubuntu):
+
+```bash
+sudo apt install pcscd pcsc-tools libpcsclite-dev swig gcc python3-dev python3-venv
+sudo systemctl enable --now pcscd
+```
+
+Then see the two Linux gotchas below (`pn533_usb` blacklist, and polkit if you
+run it as a non-root SSH user).
+
 ## Configuration
 
 Edit `Config` in `wedge_core.py`:
@@ -97,10 +107,13 @@ launchctl bootout gui/$(id -u)/com.kosmoskosmos.nfcwedge
 ```
 
 ### Linux — systemd (cleanest option)
-uinput injects globally, independent of window focus. Needs `pcscd` and
-`/dev/uinput` access (group `input` + udev rule).
+uinput injects globally, independent of window focus. Needs `pcscd`, the
+`pn533_usb` blacklist (see gotchas), and `/dev/uinput` access (group `input` +
+udev rule). The systemd unit runs as root, so polkit does not apply to it.
 
 ```bash
+sudo cp daemon/blacklist-nfc.conf /etc/modprobe.d/    # release reader from kernel NFC stack
+sudo modprobe -r pn533_usb pn533 nfc
 sudo cp daemon/99-uinput.rules /etc/udev/rules.d/
 sudo udevadm control --reload && sudo modprobe uinput
 sudo cp -r . /opt/nfc-kbd-wedge && sudo cp daemon/nfc-wedge.service /etc/systemd/system/
@@ -120,6 +133,15 @@ schtasks /Create /TN "NFC-Wedge" /SC ONLOGON /RL LIMITED ^
 
 - **macOS**: without Accessibility permission, keystrokes are silently dropped
   (reading still works, typing does not).
+- **Linux — kernel NFC stack**: the `pn533_usb` module claims the ACR122U on
+  plug-in and blocks pcscd (`readers()` returns empty even though `lsusb` shows
+  the device). Blacklist it with `daemon/blacklist-nfc.conf`, or unload live:
+  `sudo modprobe -r pn533_usb pn533 nfc && sudo systemctl restart pcscd`.
+- **Linux — polkit**: pcsc-lite gates access via polkit. A non-root user over
+  SSH has no local seat and is denied with `SCARD_W_SECURITY_VIOLATION`
+  (`0x8010006A`). Running as root (the systemd unit does) bypasses this. To
+  allow a specific non-root user, add a polkit rule for
+  `org.debian.pcsc-lite.access_pcsc` / `access_card`.
 - **Linux**: uinput sends scancodes, so the resulting character depends on the
   session keyboard layout — like a real keyboard. Harmless for the hex UID
   charset on de/us layouts; adjust `inject_linux._char_map` for exotic separators.
