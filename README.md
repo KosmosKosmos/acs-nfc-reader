@@ -46,14 +46,32 @@ pip install evdev
 python wedge.py
 ```
 
-On **Linux**, pyscard needs system packages first (Debian/Ubuntu):
+### Automated setup (Debian / Ubuntu)
+
+Two idempotent scripts handle the whole Linux setup — packages, `pcscd`, the
+`pn533_usb` blacklist, `/dev/uinput` access, the venv, and (optionally) the
+systemd service:
+
+```bash
+git clone git@github.com:KosmosKosmos/acs-nfc-reader.git && cd acs-nfc-reader
+sudo ./scripts/provision-deb.sh          # system deps + reader + venv
+sudo ./scripts/install-service.sh        # optional: run as a systemd service
+```
+
+`provision-deb.sh` options:
+- `--user NAME` — owner of the venv, added to group `input` (default: sudo user)
+- `--polkit-user NAME` — allow that user to use pcscd without a local seat
+  (only needed for a non-root user over SSH; not for a desktop user or the
+  root service)
+
+Manual equivalent, if you prefer:
 
 ```bash
 sudo apt install pcscd pcsc-tools libpcsclite-dev swig gcc python3-dev python3-venv
 sudo systemctl enable --now pcscd
 ```
 
-Then see the two Linux gotchas below (`pn533_usb` blacklist, and polkit if you
+Then apply the two Linux gotchas below (`pn533_usb` blacklist, and polkit if you
 run it as a non-root SSH user).
 
 ## Configuration

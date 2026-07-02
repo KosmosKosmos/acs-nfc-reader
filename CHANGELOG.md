@@ -21,6 +21,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - English README with setup, service, and hotplug documentation.
 - Documented two Linux gotchas: `pn533_usb` kernel driver claiming the reader,
   and pcsc-lite polkit denial for non-root SSH users.
+- Debian/Ubuntu provisioning scripts (`scripts/provision-deb.sh`,
+  `scripts/install-service.sh`) — idempotent, automate packages, pcscd, the
+  pn533 blacklist, uinput access, venv, optional polkit rule, and the systemd
+  service. Targets both Debian and Ubuntu.
 
 ## Verification status
 
