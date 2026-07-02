@@ -57,6 +57,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   reader log, card monitor, clean shutdown.
 - ✅ Resolved gotchas live: `pn533_usb` kernel driver, pcsc-lite polkit denial,
   `/dev/uinput` access via `input` group + udev rule.
+- ✅ `scripts/provision-deb.sh` idempotent re-run (apt no-ops, all steps clean).
+- ✅ `scripts/install-service.sh` — systemd service installed and running as
+  root: `active`, `NRestarts: 0`, virtual keyboard `nfc-wedge-kbd` created by
+  the running daemon (`/devices/virtual/input/input14`).
 
 ### Not yet verified
 - ⬜ Linux keystrokes actually landing in a focused field (needs a GUI session;
@@ -64,8 +68,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - ⬜ Multiple simultaneous readers on one host.
 - ⬜ Windows backend (`inject_windows.py`) — no live run; `SendInput` and the
   session-0 caveat untested in practice.
-- ⬜ Daemon configs (LaunchAgent / systemd / logon task) not yet installed and
-  run as actual background services.
+- ⬜ macOS LaunchAgent and Windows logon task not yet run as background services
+  (Linux systemd service verified).
 
 ## TODO
 
