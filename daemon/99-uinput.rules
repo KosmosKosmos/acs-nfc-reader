@@ -1,0 +1,4 @@
+# udev-Regel fuer nicht-root-Zugriff auf /dev/uinput
+# -> /etc/udev/rules.d/99-uinput.rules
+# Danach: sudo udevadm control --reload && sudo modprobe uinput
+KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"

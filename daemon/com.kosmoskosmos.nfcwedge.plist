@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS LaunchAgent (NICHT LaunchDaemon!).
+  Muss als Agent in der GUI-Session laufen, damit CGEvent die fokussierte App
+  erreicht. Ablage: ~/Library/LaunchAgents/com.kosmoskosmos.nfcwedge.plist
+
+  WICHTIG: Bedienungshilfen-Berechtigung muss dem hier genannten python-Binary
+  (.venv/bin/python) erteilt werden, nicht dem Terminal.
+
+  Laden:    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.kosmoskosmos.nfcwedge.plist
+  Stoppen:  launchctl bootout    gui/$(id -u)/com.kosmoskosmos.nfcwedge
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.kosmoskosmos.nfcwedge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/kosmo/Projects/kosmoskosmos/nfc-kbd-wedge/.venv/bin/python</string>
+    <string>/Users/kosmo/Projects/kosmoskosmos/nfc-kbd-wedge/wedge.py</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/nfc-wedge.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/nfc-wedge.err.log</string>
+</dict>
+</plist>

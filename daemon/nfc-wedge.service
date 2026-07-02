@@ -1,0 +1,23 @@
+# Linux systemd-Unit — nach /etc/systemd/system/nfc-wedge.service
+#
+# uinput injiziert global (unabhaengig vom Session-Fokus). pcscd muss laufen.
+# Der Dienst-User braucht Zugriff auf /dev/uinput (Gruppe 'input' + udev-Regel,
+# siehe daemon/99-uinput.rules) und auf den PC/SC-Reader.
+#
+#   sudo cp daemon/nfc-wedge.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now nfc-wedge
+
+[Unit]
+Description=NFC Keyboard-Wedge (ACR122U UID -> Keystrokes)
+After=pcscd.service
+Wants=pcscd.service
+
+[Service]
+Type=simple
+ExecStart=/opt/nfc-kbd-wedge/.venv/bin/python /opt/nfc-kbd-wedge/wedge.py
+Restart=on-failure
+RestartSec=2
+SupplementaryGroups=input
+
+[Install]
+WantedBy=multi-user.target
