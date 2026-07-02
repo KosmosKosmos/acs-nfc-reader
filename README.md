@@ -23,7 +23,8 @@ wedge_core.py       Config, UID read (FF CA 00 00 00), reader + card monitors   
 inject_macos.py     Quartz CGEvent (Unicode, layout-independent)
 inject_linux.py     /dev/uinput via evdev (real virtual HID, scancodes)
 inject_windows.py   SendInput + KEYEVENTF_UNICODE (ctypes, layout-independent)
-daemon/             LaunchAgent (macOS), systemd unit + udev rule (Linux)
+scripts/            provision-deb.sh + install-service.sh (Debian/Ubuntu)
+daemon/             LaunchAgent (macOS), systemd unit, udev rule, NFC blacklist
 wedge_macos.py      Original standalone macOS prototype (superseded by wedge.py)
 ```
 
@@ -125,9 +126,21 @@ launchctl bootout gui/$(id -u)/com.kosmoskosmos.nfcwedge
 ```
 
 ### Linux — systemd (cleanest option)
-uinput injects globally, independent of window focus. Needs `pcscd`, the
-`pn533_usb` blacklist (see gotchas), and `/dev/uinput` access (group `input` +
-udev rule). The systemd unit runs as root, so polkit does not apply to it.
+uinput injects globally, independent of window focus. The systemd unit runs as
+root, so polkit does not apply and keystrokes reach the active GUI session
+regardless of which user owns the service.
+
+Recommended — use the scripts (they render the unit with the correct paths):
+
+```bash
+sudo ./scripts/provision-deb.sh          # deps + reader + venv (once)
+sudo ./scripts/install-service.sh        # install + enable + start
+systemctl status nfc-wedge               # verify
+journalctl -u nfc-wedge -f               # follow
+```
+
+Manual equivalent (needs `pcscd`, the `pn533_usb` blacklist, and `/dev/uinput`
+access — see gotchas):
 
 ```bash
 sudo cp daemon/blacklist-nfc.conf /etc/modprobe.d/    # release reader from kernel NFC stack
@@ -169,4 +182,12 @@ schtasks /Create /TN "NFC-Wedge" /SC ONLOGON /RL LIMITED ^
 
 ## Status
 
-See [CHANGELOG.md](CHANGELOG.md) for what has been tested and what is still open.
+| Platform | Read UID | Inject | Service | Notes |
+|----------|:--------:|:------:|:-------:|-------|
+| **macOS** | ✅ | ✅ | ⬜ | read + inject + hotplug verified live; LaunchAgent not yet run as a service |
+| **Linux** | ✅ | ✅ | ✅ | verified end-to-end on Debian 13 as a running systemd daemon; keystrokes into a GUI field not yet confirmed (tested headless) |
+| **Windows** | ⬜ | ⬜ | ⬜ | code written, never run on hardware |
+
+Open items: Linux keystrokes landing in a focused field (needs a desktop),
+Windows verification, multiple simultaneous readers, 4-byte Mifare UIDs.
+See [CHANGELOG.md](CHANGELOG.md) for the full detail.
