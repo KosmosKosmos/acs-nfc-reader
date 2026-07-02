@@ -20,7 +20,7 @@ import time
 from dataclasses import dataclass
 
 from smartcard.CardMonitoring import CardMonitor, CardObserver
-from smartcard.ReaderMonitoring import ReaderMonitor, ReaderObserver
+from smartcard.System import readers
 
 # PC/SC-Standard-Pseudo-APDU "Get Data" -> Karten-UID (PN532 / ACR122U).
 GET_UID_APDU = [0xFF, 0xCA, 0x00, 0x00, 0x00]
@@ -72,42 +72,46 @@ class _Observer(CardObserver):
             self.inject(uid)
 
 
-class _ReaderLog(ReaderObserver):
-    """Loggt Ein-/Ausstecken der Reader (Hotplug-Feedback fuer den User).
-
-    Rein informativ: der CardMonitor ueberwacht ohnehin alle jeweils
-    angeschlossenen Reader, auch solche, die erst nach Dienststart kommen.
-    """
-
-    def update(self, observable, actions):
-        added, removed = actions
-        for r in added:
-            print(f"[rdr ] + angeschlossen: {r}")
-        for r in removed:
-            print(f"[rdr ] - entfernt:      {r}")
+def _reader_names() -> set[str]:
+    """Aktuelle Reader-Liste. Robust gegen den Zustand 'kein Reader da'."""
+    try:
+        return {str(r) for r in readers()}
+    except Exception:
+        return set()
 
 
 def run(cfg: Config, inject) -> None:
     """Blockierender Run-Loop. `inject(text)` wird pro erkannter Karte gerufen.
 
-    Zwei Monitore: ReaderMonitor (Hotplug der Geraete) + CardMonitor (Tags).
-    Beide sind event-basiert und decken beliebig viele Reader gleichzeitig ab.
-    """
-    reader_monitor = ReaderMonitor()
-    reader_log = _ReaderLog()
-    reader_monitor.addObserver(reader_log)
+    Karten meldet der event-basierte CardMonitor (deckt beliebig viele Reader
+    gleichzeitig ab, auch nach Dienststart eingesteckte).
 
+    Reader-Hotplug wird per Poll-and-Diff ueber readers() geloggt statt ueber
+    ReaderMonitor: dessen PnP-Events kommen auf macOS nicht an. Der Poll-Ansatz
+    funktioniert plattformuebergreifend und zeigt bei mehreren Geraeten genau,
+    welcher Reader kam bzw. ging.
+    """
     card_monitor = CardMonitor()
     card_observer = _Observer(cfg, inject)
     card_monitor.addObserver(card_observer)
+
+    known = _reader_names()
+    for name in sorted(known):
+        print(f"[rdr ] + vorhanden:    {name}")
 
     print("NFC Keyboard-Wedge laeuft. Reader ein-/abstecken jederzeit moeglich. "
           "Tag auflegen. Strg+C beendet.")
     try:
         while True:
-            time.sleep(0.2)
+            time.sleep(0.5)
+            current = _reader_names()
+            if current != known:
+                for name in sorted(current - known):
+                    print(f"[rdr ] + angeschlossen: {name}")
+                for name in sorted(known - current):
+                    print(f"[rdr ] - entfernt:      {name}")
+                known = current
     except KeyboardInterrupt:
         print("\nbeendet.")
     finally:
         card_monitor.deleteObserver(card_observer)
-        reader_monitor.deleteObserver(reader_log)

@@ -63,12 +63,14 @@ Edit `Config` in `wedge_core.py`:
 The service is event-driven and watches two layers:
 
 ```
-Reader layer  ← device plugged / unplugged   (ReaderMonitor)
-   └─ Card layer  ← tag placed / removed      (CardMonitor)
+Reader layer  ← device plugged / unplugged   (poll-and-diff over readers())
+   └─ Card layer  ← tag placed / removed       (CardMonitor)
 ```
 
-pyscard re-enumerates the reader list on every monitor cycle, so the service is
-hotplug-capable in both directions:
+`CardMonitor` re-enumerates the reader list on every cycle, so the service is
+hotplug-capable in both directions. A poll-and-diff over `readers()` logs which
+reader connected/disconnected (pyscard's `ReaderMonitor` is not used, as its PnP
+events do not arrive on macOS):
 
 - Start the service with **no** reader attached → it waits until one appears.
 - Plug a reader in **after** the service is running → detected, tags read.

@@ -14,7 +14,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   - `inject_linux.py` — `/dev/uinput` via evdev (real virtual HID, scancodes).
   - `inject_windows.py` — `SendInput` + `KEYEVENTF_UNICODE` via ctypes.
 - Unified entry point `wedge.py` with automatic backend selection.
-- Reader hotplug logging via `ReaderObserver`.
+- Reader hotplug logging via a cross-platform poll-and-diff over `readers()`
+  (replaces the `ReaderMonitor`, whose PnP events do not arrive on macOS).
 - Daemon configs: macOS LaunchAgent, Linux systemd unit + udev rule.
 - English README with setup, service, and hotplug documentation.
 
@@ -33,12 +34,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   service runs works: tags on the re-plugged reader are read without a restart.
   This works because `CardMonitor` re-enumerates readers every cycle.
 
-### Known limitation
-- ⚠️ On macOS the `ReaderMonitor` does **not** emit arrival/removal events for
-  reader hotplug (no `[+]`/`[-]` log), so `_ReaderLog` is silent there. Apple's
-  PC/SC implementation does not deliver the PnP reader notification reliably.
-  This is cosmetic only — functional hotplug does not depend on it (see above).
-  A poll-and-diff logger over `readers()` would restore the feedback if wanted.
+### Resolved
+- ⚠️→✅ macOS `ReaderMonitor` did not deliver PnP arrival/removal events, so
+  the hotplug log stayed silent. Replaced with a poll-and-diff over `readers()`
+  in the run loop; works on all platforms and names the specific reader that
+  connected/disconnected. Startup enumeration + clean shutdown verified on macOS.
 
 ### Not yet verified
 - ⬜ Multiple simultaneous readers on one host.
@@ -51,8 +51,6 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## TODO
 
-- [ ] Optional: replace the macOS-silent `ReaderMonitor` logging with a
-      poll-and-diff logger over `readers()` for cross-platform hotplug feedback.
 - [ ] Test on a Linux host with the reader (uinput device creation, layout,
       `pcscd` dependency, non-root `/dev/uinput` via udev rule).
 - [ ] Test on Windows (Unicode SendInput, logon-task autostart).
